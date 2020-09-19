@@ -1,0 +1,3 @@
+Human genome
+Human: https://www.gencodegenes.org/human/ Genome sequence (GRCh38)
+Annotations: https://www.gencodegenes.org/human/  CHR regions, GTF format

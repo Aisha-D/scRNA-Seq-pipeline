@@ -1,0 +1,37 @@
+Segerstople
+Download sample data https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-5061/samples/?full=true
+Remove the diseases samples - do this by ordering the disease column and delete type 2 diabetes samples
+Move the sample data into its linux folder using winSCP
+1981 samples
+/castles/nr/projects/2017/cazierj-msc-bioinformatics
+Linux
+
+$ mkdir segerstople
+$ cd segerstople
+$ wget -O samples_at_ENA.txt "https://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=PRJNA337935&result=read_run&fields=study_accession,sample_accession,secondary_sample_accession,experiment_accession,run_accession,tax_id,scientific_name,instrument_model,library_layout,fastq_ftp,fastq_galaxy,submitted_ftp,submitted_galaxy,sra_ftp,sra_galaxy,cram_index_ftp,cram_index_galaxy&download=txt"
+#this next stage can take long (hours to a day), so make sure to screen detach here
+$ screen
+$ cut -f34 E-MTAB-5061-3.sdrf.txt | xargs wget   #this code line only works for pair ends, modify for single pairs as [cut - f11 samples_at_ENA . txt | xargs wget]
+#Press control+A at the same time, then d very quickly afterwards - To check that the code is running check with $ top - To return to see the code $ screen –r
+
+1981 normal samples downloaded
+##Quality Control - fastQC
+$ mkdir fastqc_output
+$ fastqc *fastq.gz -o fastqc_output -t 14      #-t 14 helps speed up the command time
+$ for zip in *.zip; do unzip $zip; done       #unzip output files
+$ cat */summary.txt > ./fastqc_summaries.txt     #extract summary reports and combine into one txt file
+
+##Trimming - Trim Galore (go to segerstople directory)
+$ mkdir trimmed
+$ trim_galore -q 20 -o trimmed *.fastq.gz
+
+
+##Alignment loop for all samples
+$ mkdir read_out
+$ for i in *.fq.gz; do STAR --genomeDir /castles/nr/projects/2017/cazierj-msc-bioinformatics/Beta2/human_index --runMode alignReads --readFilesIn $i --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --chimSegmentMin 20 --quantMode GeneCounts --outReadsUnmapped Fastx --outFileNamePrefix ./read_out/$i; done
+
+$ mv *.gzReadsPerGene.out.tab all_reads # move all reads per gene values to a new directory
+$ paste * | awk 'BEGIN {OFS="\t"; FS="\t"}; {j=$1; for (i=2;i<=NF;i+=4) {j=j FS $i} print j}' > count_matrix.txt
+$ head -1 count_matrix.txt | tr '|' '\n' | wc -l
+
+# In new directory, combine all reads per gene values to construct the count matrix
